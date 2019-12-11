@@ -1,4 +1,4 @@
-# BST260 Final Project: Evaluation of NYPD Emergency Responses
+# BST260 Final Project: Evaluation of FDNY Emergency Responses
 
 Bryan Nelson, Daniel Shinnick, Carol Wei
 
