@@ -1,1 +1,10 @@
-# bst260_finalproject
+# BST260 Final Project: Evaluation of NYPD Emergency Responses
+
+Bryan Nelson, Daniel Shinnick, Carol Wei
+
+December 15, 2019
+
+Data sources:
+* EMS Incident Dispatch Data from NYC OpenData: https://data.cityofnewyork.us/Public-Safety/EMS-Incident-Dispatch-Data/76xm-jjuj
+* Median Household Income from Census Reporter: https://censusreporter.org/tables/B19013/
+
