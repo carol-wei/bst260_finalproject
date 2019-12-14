@@ -9,4 +9,4 @@ Data sources:
 * Median Household Income from Census Reporter: https://censusreporter.org/tables/B19013/
 
 Website:
-https://sites.google.com/view/emsproject/home">https://sites.google.com/view/emsproject/
+https://sites.google.com/view/emsproject/
