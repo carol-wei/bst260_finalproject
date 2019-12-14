@@ -152,8 +152,8 @@ emsdata %>%
   xlim(0, 100) +
   theme_bw() +
   #add descriptive labels 
-  xlab("Incident Response Time") +
-  ylab("Count") +
+  xlab("Incident Response Time (Minutes)") +
+  ylab("Number of Incidents") +
   ggtitle("Histogram of Incident Response Time")
 
 emsdata %>%
@@ -163,8 +163,8 @@ emsdata %>%
   facet_grid(borough~.) +
   theme_bw() +
   #add descriptive labels 
-  xlab("Incident Response Time") +
-  ylab("Count") +
+  xlab("Incident Response Time (Minutes)") +
+  ylab("Number of Incidents") +
   ggtitle("Histogram of Incident Response Time by Borough")
 
 emsdata %>%
@@ -174,8 +174,8 @@ emsdata %>%
   facet_grid(initial_severity_level_code~.) +
   theme_bw()+
   #add descriptive labels 
-  xlab("Incident Response Time") +
-  ylab("Count") +
+  xlab("Incident Response Time (Minutes)") +
+  ylab("Number of Incidents") +
   ggtitle("Histogram of Incident Response Time by Severity Code")
 
 #Look at our covariates of interest
@@ -186,7 +186,7 @@ emsdata %>%
   theme_bw()+
   #add descriptive labels 
   xlab("Day of Week") +
-  ylab("Count") +
+  ylab("Number of Incidents") +
   ggtitle("Count of Incidents by Day of Week")
 
 emsdata %>% 
@@ -195,7 +195,7 @@ emsdata %>%
   theme_bw() +
   #add descriptive labels 
   xlab("Hour of Day") +
-  ylab("Count") +
+  ylab("Number of Incidents") +
   ggtitle("Count of Incidents by Hour of Day")
 
 emsdata %>% 
@@ -204,7 +204,7 @@ emsdata %>%
   theme_bw()+
   #add descriptive labels 
   xlab("Initial Severity Code") +
-  ylab("Count") +
+  ylab("Number of Incidents") +
   ggtitle("Count of Incidents by Severity Code")
   
 #avg response time vs. income
@@ -216,8 +216,8 @@ emsdata %>%
   geom_point() +
   theme_bw()+
   #add descriptive labels 
-  xlab("Income") +
-  ylab("Average Incident Response Time") +
+  xlab("Income (U.S. Dollars)") +
+  ylab("Average Incident Response Time (Minutes)") +
   ggtitle("Average Incident Response Time by Income")
 
 #avg response time by initial severity level code
@@ -230,14 +230,15 @@ emsdata %>%
   theme_bw()+
   #add descriptive labels 
   xlab("Initial Severity Code") +
-  ylab("Average Incident Response Time") +
+  ylab("Average Incident Response Time (Minutes)") +
   ggtitle("Average Incident Response Time by Initial Severity Code")
+
 
 ```
 
 
 The following code was used to create the heat map of EMS response times (unadjusted) by NYC zip code. Please note that this code is ran in the Shiny app, and is not compiled below.
-```{r, eval=FALSE}
+```{r}
 # Read in data and cut outliers
 dat <- read.csv("ems_incident_dispatch_data_v2.csv", header=T)
 dat <- dat[which(dat$dispatch_response_seconds_qy > 0),]
@@ -307,6 +308,25 @@ cuts4 <- paste(cuts[4], ' - ' , cuts[5], sep = '')
 cuts5 <- paste(cuts[5], '+', sep = '')
 cuts <- c(cuts0,cuts1,cuts2,cuts3,cuts4,cuts5)
 
+timesY <- 40.7580
+timesX <- 73.9855
+
+#pythagorean distance
+plotData$distance <- (sqrt((plotData$x+timesX)^2 + (plotData$y-timesY)^2))
+
+highPriority <- plotData[which(plotData$initial_severity_level_code < 4),]
+emergency <- plotData[which(plotData$initial_severity_level_code ==1),]
+
+####### Regression
+distMod <- lm(avg ~ distance, data = highPriority)
+distMod2 <- lm(avg ~ distance, data = emergency)
+
+summary(distMod)
+summary(distMod2)
+
+```
+
+```{r, eval=FALSE}
 # Shiny App UI/Server
 ui = fluidPage(
   theme = shinythemes::shinytheme("darkly"),
@@ -415,7 +435,7 @@ server = function(input, output) {
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server)
+#shinyApp(ui = ui, server = server)
 ```
 
 The following code was used to develop and evaluate the decision tree to predict EMS response time:
@@ -510,16 +530,17 @@ Generally, event were reported more on the weekend (Saturday, Sunday and Monday)
 
 There does not appear to be a linear relationship between average EMS response time and income, although there may be two clusters such that higher incomes may have a weak linear relationship but lower incomes do not. There did appear to be a small but steady increase in average EMS response time as severity code increased (so became less severe) for codes 1-7, where EMS response time for code 8 (least severe) was longer than for any other severity code by an order of magnitude. We did not regress or check this correlation as our intention was to descriptively assess the variables we were interested in *a priori*. 
 
-We created a heat map in a Shiny app to display the average incident response time by zip code. Darker areas represent higher response times. We added plot interaction to see average income and average response time for a selected zip code. In addition, we mapped by severity code assessed at call. More emergent situations are given severity scores of 1, and thus generally have faster response times.
+We created a heat map in a Shiny app to display the average incident response time by zip code. Darker areas represent higher response times. We added plot interaction to see average income and average response time for a selected zip code. In addition, we mapped by severity code assessed at call. More emergent situations are given severity scores of 1, and thus generally have faster response times. On our severity selection page, we can see that zip codes further from downtown generally have longer response times for severity 2-3 calls. We confirmed this result with a simple linear regression with Pythagorean distance from Times Square as our covariate and average response time within zip code for severity 1-3 as our outcome. For each mile a zip code was from Times Square, our model predicted a 2.7 second increase in average response time for high priority calls.
 
 Our main analysis was using tree-based models to predict EMS response times. To accomplish this we performed 1) a regression tree and 2) a random forest. For each model we split into training (70%) and testing (30%) datasets randomly. EMS response time in minutes, initial severity level, income, and hour of day were analyzed continuously, while borough and weekday were treated categorically. 
 
-In the first regression tree, we found that initial serverity code was important, as was time of day and borough. On average, individuals with less severe emergencies in the middle of the night outside of Bronx, Brookly, and Manhattan had the longest wait time for EMS responders (392 minutes). The regression based tree generated predictions within 10.1 minutes of the actual observed response time. This is relatively poor performance considering the average EMS response time in our data was 10.6 minutes. Generally, we were surprised to see how short the majority of response times were. 
+In the first regression tree, we found that initial severity code was important, as was time of day and borough. On average, individuals with less severe emergencies in the middle of the night outside of Bronx, Brooklyn, and Manhattan had the longest wait time for EMS responders (392 minutes). The regression based tree generated predictions within 10.1 minutes of the actual observed response time. This is relatively poor performance considering the average EMS response time in our data was 10.6 minutes. Generally, we were surprised to see how short the majority of response times were. 
 
 Because of the skewness of EMS response times, we performed a sensitivity analysis to create a regression tree on log_10(EMS response time). This greatly improved the model's predictions - the predictions were within 1.9 minutes of the actual observed response time.
 
 In the second tree-based model, we created a random forest of 100 trees to predict EMS response time, which performed better than the regression tree (predictions within 9.5 minutes). As in the regression tree, initial severity remained the strongest predictor. Borough, time of day, and income were also decent predictors of EMS response time.
 
+For more accurate predictions, we would need more information such as specific location of calls, which were not provided due to HIPAA violations. It would be interesting to add EMS response centers to our map, and perhaps analyze other socioeconomic data. However, our analysis could help the New York City Fire Department address gaps in their coverage by location, time of day, or other factors.
 
 ###REFERENCES
 
